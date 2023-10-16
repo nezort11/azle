@@ -203,9 +203,10 @@ function encodeHardEnoughAndYoullFindYourselfDecoding(
     if (arrayOfEncodedValues.length === 0) {
         return emptyEncodedArrayOfValues;
     }
-    const [start, end] = getEndOfTypeTable(emptyEncodedArrayOfValues);
+    // TODO we could probably update this one to be just the array without the last element
+    const end = getEndOfTypeTable(emptyEncodedArrayOfValues);
     const encodedType = arrayOfEncodedValues[0];
-    const [startIndex, endIndex] = getEndOfTypeTable(encodedType);
+    const endIndex = getEndOfTypeTable(encodedType);
     const encodedArrayOfValues = arrayOfEncodedValues.map((value) => {
         return value.slice(endIndex);
     });
@@ -240,7 +241,20 @@ const enum IDLTypeIds {
 
 const magicNumber = 'DIDL';
 
-export function getEndOfTypeTable(bytes: ArrayBuffer): [number, number] {
+/* This function is essentially a clone of the IDL.decode function. With the
+Following exceptions:
+1. We stop right after the call to the readTypeTable function; we don't care
+about the other parts.
+2. We get rid of the part that is reconstructing the type table and the types.
+We don't actually want to recreate any of that, we just want to figure out how
+much space it takes up.
+2. Right after the new Pipe() is made we look at the byte length of the pipe
+3. Right before we return we measure the byteLength again. This will tell us
+how many bytes were read as part of reading the typeTable.
+With that start and end value in hand we can easily calculate the end index of
+the type table.
+*/
+function getEndOfTypeTable(bytes: ArrayBuffer): number {
     const b = new Pipe(bytes);
     const start = b.byteLength;
 
@@ -253,29 +267,23 @@ export function getEndOfTypeTable(bytes: ArrayBuffer): [number, number] {
         throw new Error('Wrong magic number: ' + JSON.stringify(magic));
     }
 
-    function readTypeTable(pipe: Pipe): [number, number] {
+    function readTypeTable(pipe: Pipe): void {
         const len = Number(lebDecode(pipe));
-        const start = magicNumber.length + 1;
-        let end = start;
 
         for (let i = 0; i < len; i++) {
             const ty = Number(slebDecode(pipe));
-            end += 1;
             switch (ty) {
                 case IDLTypeIds.Opt:
                 case IDLTypeIds.Vector: {
                     const t = Number(slebDecode(pipe));
-                    end += 1;
                     break;
                 }
                 case IDLTypeIds.Record:
                 case IDLTypeIds.Variant: {
                     let objectLength = Number(lebDecode(pipe));
-                    end += 1;
                     let prevHash;
                     while (objectLength--) {
                         const hash = Number(lebDecode(pipe));
-                        end++;
                         if (hash >= Math.pow(2, 32)) {
                             throw new Error('field id out of 32-bit range');
                         }
@@ -284,31 +292,27 @@ export function getEndOfTypeTable(bytes: ArrayBuffer): [number, number] {
                         }
                         prevHash = hash;
                         const t = Number(slebDecode(pipe));
-                        end++;
                     }
                     break;
                 }
                 case IDLTypeIds.Func: {
                     let argLength = Number(lebDecode(pipe));
-                    end++;
-                    while (argLength--) {
-                        end++;
-                    }
+                    while (argLength--) {}
                     const returnValues = [];
                     let returnValuesLength = Number(lebDecode(pipe));
-                    end++;
                     while (returnValuesLength--) {
                         returnValues.push(Number(slebDecode(pipe)));
-                        end++;
                     }
                     let annotationLength = Number(lebDecode(pipe));
-                    end++;
                     while (annotationLength--) {
                         const annotation = Number(lebDecode(pipe));
-                        end++;
                         switch (annotation) {
-                            case 1:
-                            case 2:
+                            case 1: {
+                                break;
+                            }
+                            case 2: {
+                                break;
+                            }
                             case 3: {
                                 break;
                             }
@@ -320,16 +324,12 @@ export function getEndOfTypeTable(bytes: ArrayBuffer): [number, number] {
                 }
                 case IDLTypeIds.Service: {
                     let servLength = Number(lebDecode(pipe));
-                    end++;
                     while (servLength--) {
                         const nameLength = Number(lebDecode(pipe));
-                        end++;
                         const funcName = new TextDecoder().decode(
                             safeRead(pipe, nameLength)
                         );
-                        end += nameLength;
                         const funcType = slebDecode(pipe);
-                        end++;
                     }
                     break;
                 }
@@ -338,17 +338,12 @@ export function getEndOfTypeTable(bytes: ArrayBuffer): [number, number] {
             }
         }
 
-        // TODO what do we do with this guy?  Is he part of the table? if so we need to count it? is it part of the data in which case we dont
-        // I'm going to start by assuming he's part of the table
         const length = Number(lebDecode(pipe));
-        end++;
         for (let i = 0; i < length; i++) {
             Number(slebDecode(pipe));
-            end++;
         }
-        return [start, end];
-        // return [typeTable, rawList];
+        return;
     }
     readTypeTable(b);
-    return [start, start - b.byteLength];
+    return start - b.byteLength;
 }
