@@ -178,46 +178,36 @@ export function StableBTreeMap<
                 globalThis as any
             )._azleIc.stableBTreeMapValues(candidEncodedMemoryId);
 
-            const candidEncodedArray =
-                encodeHardEnoughAndYoullFindYourselfDecoding(
-                    valueType,
-                    candidEncodedValues
-                );
-
-            return decode(
-                AzleVec(valueType),
-                new Uint8Array(candidEncodedArray)
+            const candidEncodedArray = toEncodedArrayOfValues(
+                valueType,
+                candidEncodedValues
             );
+
+            return decode(AzleVec(valueType), candidEncodedArray);
         }
     };
 }
 
-function encodeHardEnoughAndYoullFindYourselfDecoding(
+function toEncodedArrayOfValues(
     valueType: any,
-    arrayBufferOfEncodedValues: ArrayBuffer[]
-) {
-    const arrayOfEncodedValues = arrayBufferOfEncodedValues.map(
-        (value) => new Uint8Array(value)
-    );
+    arrayOfEncodedValues: ArrayBuffer[]
+): Uint8Array {
     const emptyEncodedArrayOfValues = encode(AzleVec(valueType), []);
     if (arrayOfEncodedValues.length === 0) {
         return emptyEncodedArrayOfValues;
     }
-    // TODO we could probably update this one to be just the array without the last element
-    const end = getEndOfTypeTable(emptyEncodedArrayOfValues);
+    const end = emptyEncodedArrayOfValues.length - 1;
     const encodedType = arrayOfEncodedValues[0];
     const endIndex = getEndOfTypeTable(encodedType);
-    const encodedArrayOfValues = arrayOfEncodedValues.map((value) => {
-        return value.slice(endIndex);
-    });
     const fakeBuffer = [...emptyEncodedArrayOfValues.slice(0, end)];
-    fakeBuffer.push(encodedArrayOfValues.length);
-    encodedArrayOfValues.forEach((value) => {
-        for (let i = 0; i < value.length; i++) {
-            fakeBuffer.push(value[i]);
+    fakeBuffer.push(arrayOfEncodedValues.length);
+    arrayOfEncodedValues.map((value) => {
+        const arr = new Uint8Array(value);
+        for (let i = endIndex; i < arr.length; i++) {
+            fakeBuffer.push(arr[i]);
         }
     });
-    return fakeBuffer;
+    return new Uint8Array(fakeBuffer);
 }
 
 const enum IDLTypeIds {

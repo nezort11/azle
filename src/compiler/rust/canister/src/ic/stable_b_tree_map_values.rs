@@ -16,16 +16,14 @@ pub fn native_function<'a>(
         .try_into()?;
     let memory_id: u8 = candid::decode_one(&memory_id_candid_bytes)?;
 
-    let values: Vec<Vec<u8>> = STABLE_B_TREE_MAPS.with(|stable_b_tree_maps| {
+    let js_values: Vec<JSValue> = STABLE_B_TREE_MAPS.with(|stable_b_tree_maps| {
         let stable_b_tree_maps = stable_b_tree_maps.borrow();
 
         stable_b_tree_maps[&memory_id]
             .iter()
-            .map(|(_, value)| value.candid_bytes)
+            .map(|(_, value)| value.candid_bytes.into())
             .collect()
     });
-
-    let js_values: Vec<JSValue> = values.into_iter().map(|value| value.into()).collect();
 
     let js_value: JSValue = js_values.into();
 
