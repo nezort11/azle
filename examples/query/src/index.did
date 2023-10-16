@@ -1,3 +1,7 @@
 service: () -> {
+    fill: (nat, nat) -> ();
+    fillerUp: () -> (vec record {col1:text; col2:bool; col3:int; col4:bool; col5:opt text; col6:text; col7:vec record {col1:text; col2:float32}; col8:vec record {col1:text; col2:float32}; col9:int32; col10:text; col11:opt vec record {col1:int32; col2:text; col3:text; col4:text}; col12:opt vec text});
+    simpleFiller: () -> ();
     simpleQuery: () -> (text) query;
+    view: () -> (vec record {id:nat; "text":text});
 }
