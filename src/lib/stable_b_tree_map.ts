@@ -1,12 +1,13 @@
 import { CandidType, TypeMapping } from './candid';
-import { None, Opt as AzleOpt, Some } from './candid/types/constructed/opt';
-import { Vec as AzleVec } from './candid/types/constructed/vec';
+import { None, Opt, Some } from './candid/types/constructed/opt';
+import { Vec } from './candid/types/constructed/vec';
 import { nat64 } from './candid/types/primitive/nats/nat64';
 import { nat8 } from './candid/types/primitive/nats/nat8';
 import { encode, decode } from './candid/serde';
 import {
     PipeArrayBuffer as Pipe,
     lebDecode,
+    lebEncode,
     safeRead,
     slebDecode
 } from '@dfinity/candid';
@@ -41,7 +42,7 @@ export function StableBTreeMap<
          * @param key the location from which to retrieve.
          * @returns the value associated with the given key, if it exists.
          */
-        get(key: TypeMapping<Key>): AzleOpt<TypeMapping<Value>> {
+        get(key: TypeMapping<Key>): Opt<TypeMapping<Value>> {
             const candidEncodedMemoryId = encode(nat8, memoryId).buffer;
             const candidEncodedKey = encode(keyType, key).buffer;
 
@@ -67,7 +68,7 @@ export function StableBTreeMap<
         insert(
             key: TypeMapping<Key>,
             value: TypeMapping<Value>
-        ): AzleOpt<TypeMapping<Value>> {
+        ): Opt<TypeMapping<Value>> {
             const candidEncodedMemoryId = encode(nat8, memoryId).buffer;
             const candidEncodedKey = encode(keyType, key).buffer;
             const candidEncodedValue = encode(valueType, value).buffer;
@@ -150,7 +151,7 @@ export function StableBTreeMap<
          * @param key the location from which to remove.
          * @returns the previous value at the key if it exists, `null` otherwise.
          */
-        remove(key: TypeMapping<Key>): AzleOpt<TypeMapping<Value>> {
+        remove(key: TypeMapping<Key>): Opt<TypeMapping<Value>> {
             const candidEncodedMemoryId = encode(nat8, memoryId).buffer;
             const candidEncodedKey = encode(keyType, key).buffer;
 
@@ -183,7 +184,7 @@ export function StableBTreeMap<
                 candidEncodedValues
             );
 
-            return decode(AzleVec(valueType), candidEncodedArray);
+            return decode(Vec(valueType), candidEncodedArray);
         }
     };
 }
@@ -192,15 +193,17 @@ function toEncodedArrayOfValues(
     valueType: any,
     arrayOfEncodedValues: ArrayBuffer[]
 ): Uint8Array {
-    const emptyEncodedArrayOfValues = encode(AzleVec(valueType), []);
+    const emptyEncodedArrayOfValues = encode(Vec(valueType), []);
     if (arrayOfEncodedValues.length === 0) {
         return emptyEncodedArrayOfValues;
     }
     const end = emptyEncodedArrayOfValues.length - 1;
     const encodedType = arrayOfEncodedValues[0];
     const endIndex = getEndOfTypeTable(encodedType);
-    const fakeBuffer = [...emptyEncodedArrayOfValues.slice(0, end)];
-    fakeBuffer.push(arrayOfEncodedValues.length);
+    const fakeBuffer = [
+        ...emptyEncodedArrayOfValues.slice(0, end),
+        ...new Uint8Array(lebEncode(arrayOfEncodedValues.length))
+    ];
     arrayOfEncodedValues.map((value) => {
         const arr = new Uint8Array(value);
         for (let i = endIndex; i < arr.length; i++) {
