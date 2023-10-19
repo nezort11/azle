@@ -36,4 +36,13 @@ service: () -> {
     stableMap13Len: () -> (nat64) query;
     stableMap13Remove: (text) -> (opt principal);
     stableMap13Values: () -> (vec principal) query;
+    stableMap14ContainsKey: (text) -> (bool) query;
+    stableMap14Get: (text) -> (opt func (record {title:text}) -> (variant {Sad; Happy})) query;
+    stableMap14Insert: (text, func (record {title:text}) -> (variant {Sad; Happy})) -> (opt func (record {title:text}) -> (variant {Sad; Happy}));
+    stableMap14IsEmpty: () -> (bool) query;
+    stableMap14Items: () -> (vec record {text; func (record {title:text}) -> (variant {Sad; Happy})}) query;
+    stableMap14Keys: () -> (vec text) query;
+    stableMap14Len: () -> (nat64) query;
+    stableMap14Remove: (text) -> (opt func (record {title:text}) -> (variant {Sad; Happy}));
+    stableMap14Values: () -> (vec func (record {title:text}) -> (variant {Sad; Happy})) query;
 }

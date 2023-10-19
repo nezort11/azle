@@ -28,6 +28,7 @@ type _AzleCanisterReturnType = {
     isCanister?: boolean;
 };
 
+// TODO fix this
 export function Canister<T extends CanisterOptions>(
     canisterOptions: T
 ): CallableObject<T> & { _azleCandidType?: '_azleCandidType' } {

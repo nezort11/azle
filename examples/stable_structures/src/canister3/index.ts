@@ -4,6 +4,7 @@ import { stableMap10Methods } from './stable_map_10';
 import { stableMap11Methods } from './stable_map_11';
 import { stableMap12Methods } from './stable_map_12';
 import { stableMap13Methods } from './stable_map_13';
+import { stableMap14Methods } from './stable_map_14';
 
 let redeployed = false;
 
@@ -17,5 +18,6 @@ export default Canister({
     ...stableMap10Methods,
     ...stableMap11Methods,
     ...stableMap12Methods,
-    ...stableMap13Methods
+    ...stableMap13Methods,
+    ...stableMap14Methods
 });
